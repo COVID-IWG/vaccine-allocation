@@ -1,0 +1,6 @@
+epimargin
+numpy
+pandas
+Flask
+gunicorn
+google-cloud-storage

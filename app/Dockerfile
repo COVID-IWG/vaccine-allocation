@@ -1,6 +1,5 @@
-# Use the official lightweight Python image.
-# https://hub.docker.com/_/python
-FROM python:3.9-slim
+# Use pre-packaged Python environment 
+FROM gcr.io/adaptive-control/vaccine-allocation-base
 
 # Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED True
@@ -9,9 +8,6 @@ ENV PYTHONUNBUFFERED True
 ENV APP_HOME /app
 WORKDIR $APP_HOME
 COPY . ./
-
-# Install production dependencies.
-RUN pip install Flask gunicorn
 
 # Run the web service on container startup. Here we use the gunicorn
 # webserver, with one worker process and 8 threads.

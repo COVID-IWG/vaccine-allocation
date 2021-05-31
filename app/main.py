@@ -1,18 +1,11 @@
 import os
-import sys 
-import subprocess
-
-import numpy as np
-import pandas as pd
-# from epimargin.estimators import analytical_MPVS
-# from epimargin.etl.commons import download_data
-# from epimargin.etl.covid19india import (data_path, get_time_series,
-#                                         load_all_data, state_code_lookup)
-# from epimargin.smoothing import notched_smoothing
 from flask import Flask, request
-from google.cloud import storage
 
-experiment_tag = "infra_setup"
+import pandas as pd
+from .epi import * 
+from .tev import * 
+
+experiment_tag = "epi-step"
 app = Flask(__name__)
 
 # common parameters
@@ -28,17 +21,8 @@ survey_date = "October 23, 2020"
 num_sims = 1000
 coalesce_states = ["Delhi", "Manipur", "Dadra And Nagar Haveli And Daman And Diu", "Andaman And Nicobar Islands"]
 
-
-
 # cloud parameters
-bucket_name = "vax-allocation"
-
-# download common files at container start
-
-
-# @app.route("/setup", methods = ["POST"])
-# def setup():
-#     pass 
+bucket_name = f"vax-allocation/{experiment_tag}"
 
 @app.route("/epi", methods = ["POST"])
 def epi():

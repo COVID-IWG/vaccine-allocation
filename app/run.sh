@@ -18,7 +18,7 @@ else
     filter=${*/ /\\\|/} # concatenate script args with | 
 fi
 
-grep "${filter}" "${SCRIPT_DIR}"/../app/data/all_india_coalesced_initial_conditionsApr15.csv | cut -d, -f 2,4 | tr , " " |
+grep "${filter}" "${SCRIPT_DIR}"/../data/all_india_coalesced_initial_conditionsApr15.csv | cut -d, -f 2,4 | tr , " " |
 while read -r state_code district; do 
     echo "${tag} ${state_code} - ${district} -> STARTED"        &&
     run  "${tag}" epi "${state_code}" "${district}" > /dev/null &&

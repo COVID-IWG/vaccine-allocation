@@ -12,6 +12,7 @@ import pandas as pd
 from flask import Flask, request
 from google.cloud import storage
 
+experiment_tag = "infra_setup"
 app = Flask(__name__)
 
 # common parameters
@@ -27,7 +28,6 @@ survey_date = "October 23, 2020"
 num_sims = 1000
 coalesce_states = ["Delhi", "Manipur", "Dadra And Nagar Haveli And Daman And Diu", "Andaman And Nicobar Islands"]
 
-experiment_tag = "all_india_coalesced"
 
 
 # cloud parameters

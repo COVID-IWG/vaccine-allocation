@@ -2,11 +2,12 @@ import os
 
 import pandas as pd
 from flask import Flask, request
-from google.cloud import storage
 
-from commons import bucket
-from epi import run_simulation, epi_columns
-from tev import run_evaluation, tev_columns
+from .commons import bucket
+from .epi import run_simulation, epi_columns
+from .tev import run_evaluation, tev_columns
+from .agg import run_aggregation
+from .viz import run_visualization
 
 experiment_tag = "main"
 app = Flask(__name__)
@@ -47,12 +48,9 @@ def agg():
     else: 
         state_code = None
 
-    if "district" in request_data:
-        district = request_data["district"]
-    else: 
-        district = None
+    if state_code is not None:
+        print(f"received agg request for {state_code}")
 
-    print(f"received agg request for {state_code} - {district}")
     return "OK!"
 
 @app.route("/viz", methods = ["POST"])

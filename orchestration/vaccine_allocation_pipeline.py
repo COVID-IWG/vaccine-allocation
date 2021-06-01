@@ -1,13 +1,13 @@
+import datetime
 import json
 import os
-import datetime
 
 import requests
 from airflow import models
-from airflow.models.connection import Connection
 from airflow.hooks.http_hook import HttpHook
-from airflow.operators.http_operator import SimpleHttpOperator
+from airflow.models.connection import Connection
 from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.http_operator import SimpleHttpOperator
 
 state_districts = {
     'AN'  : ['Andaman And Nicobar Islands'],
@@ -118,12 +118,12 @@ def viz(state_code = None, district = None):
 state_districts = {k: v for (k, v) in state_districts.items() if k in ["TN", "BR"]}
 
 with models.DAG("vaccine-allocation", schedule_interval = None, catchup = False) as dag:
-    root = DummyOperator(task_id = "root")
+    root = DummyOperator(task_id = "root", start_date = None)
     natl_agg = agg()
     natl_agg >> viz()
     
     for (state_code, districts) in state_districts.items():
-        state_root = DummyOperator(task_id = state_code + "_root")
+        state_root = DummyOperator(task_id = state_code + "_root", start_date = None)
         root >> state_root
 
         state_agg = agg(state_code = state_code)

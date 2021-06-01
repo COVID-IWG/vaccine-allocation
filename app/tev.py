@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from itertools import product
 
-from .commons import (agebin_labels, bucket, coalesce_states, phi_points,
+from commons import (agebin_labels, bucket, coalesce_states, phi_points,
                       simulation_range, simulation_start)
 
 tev_columns = ["state", "N_tot", 'N_0', 'N_1', 'N_2', 'N_3', 'N_4', 'N_5', 'N_6', 'T_ratio']
@@ -155,7 +155,7 @@ def run_evaluation(state_code, district, population_data, experiment_tag):
     os.remove(f"/tmp/metrics_{state_code}_{district}_{cf_tag}.npz")
 
     for (phi, vax_policy) in product([int(_*365*100) for _ in phi_points], ["random", "contact", "mortality"]):
-        print(f"{state_code}/{district}/tev: downloading phi = {phi}, {policy} simulation data")
+        print(f"{state_code}/{district}/tev: downloading phi = {phi}, {vax_policy} simulation data")
         p1_tag = f"{state_code}_{district}_phi{phi}_{vax_policy}"
 
         bucket.blob(f"{experiment_tag}/epi/{state_code}/{district}/{p1_tag}.npz")\
@@ -179,7 +179,7 @@ def run_evaluation(state_code, district, population_data, experiment_tag):
         TEV_p1, dTEV_health, dTEV_cons, dTEV_priv = policy_TEV(pi, q_p1v0, q_p0v0, c_p1v1, c_p1v0, c_p0v0)
         VSLY_p1 = policy_VSLY(pi, np.array(1), q_p1v0,  c_p0v0)
 
-        print(f"{state_code}/{district}/tev: saving phi = {phi}, policy metrics")
+        print(f"{state_code}/{district}/tev: saving phi = {phi}, {vax_policy} metrics")
         save_metrics(
             f"/tmp/metrics_{state_code}_{district}_{p1_tag}",
             deaths          = (D_p1[-1] - D_p1[0]).sum(axis = 1),

@@ -4,7 +4,7 @@ import pandas as pd
 from flask import Flask, request
 from google.cloud import storage
 
-from commons import bucket, population_columns
+from commons import bucket
 from epi import run_simulation, epi_columns
 from tev import run_evaluation, tev_columns
 
@@ -25,7 +25,7 @@ def epi():
     state_code   = request_data["state_code"]
     district     = request_data["district"]
     print(f"received epi request for {state_code} - {district}")
-    district_initial_conditions = initial_conditions.loc[state_code, district]
+    district_initial_conditions = initial_conditions[epi_columns].loc[state_code, district]
     run_simulation(state_code, district, district_initial_conditions, experiment_tag)
     return "OK!"
 
@@ -35,7 +35,7 @@ def tev():
     state_code   = request_data["state_code"]
     district     = request_data["district"]
     print(f"received tev request for {state_code} - {district}")
-    district_population = initial_conditions[population_columns].loc[state_code, district]
+    district_population = initial_conditions[tev_columns].loc[state_code, district]
     run_evaluation(state_code, district, district_population, experiment_tag)
     return "OK!"
 

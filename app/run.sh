@@ -11,6 +11,9 @@ function run() {
 }
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+SCRIPT_DIR=${SCRIPT_DIR:-$(pwd)}
+tag=$(grep '^experiment_tag = ' "${SCRIPT_DIR}"/../app/main.py | cut -d '"' -f2 | tr _ -)
+echo "tag: ${tag}"
 
 if [ $# -eq 0 ]; then 
     filter="*" # no filter 
@@ -21,7 +24,7 @@ fi
 grep "${filter}" "${SCRIPT_DIR}"/../data/all_india_coalesced_initial_conditionsApr15.csv | cut -d, -f 2,4 | tr , " " |
 while read -r state_code district; do 
     echo "${tag} ${state_code} - ${district} -> STARTED"        &&
-    run  "${tag}" epi "${state_code}" "${district}" > /dev/null &&
-    run  "${tag}" tev "${state_code}" "${district}" > /dev/null && 
+    # run  "${tag}" epi "${state_code}" "${district}"  &&
+    run  "${tag}" tev "${state_code}" "${district}"  && 
     echo "${tag} ${state_code} - ${district} <- DONE" 
 done 

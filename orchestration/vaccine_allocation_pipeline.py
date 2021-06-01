@@ -48,17 +48,25 @@ state_districts = {
 
 AUDIENCE_ROOT = os.environ["GCF_URL"]
 METADATA_ROOT = os.environ["METADATA"]
+START_DATE    = datetime.datetime(2021, 6, 1)
+VAX_ALLOC_URL = "vaccine-allocation-sipjq3uhla-uc.a.run.app"
 
-class VaccineAllocationPipelineStage(SimpleHttpOperator):
-    ui_color = "#175AE1"
-    template_fields = ["branch"]
+class CloudFunction(SimpleHttpOperator):
+    ui_color   = "#2B6CE6"
+    ui_fgcolor = "#FFFFFF"
+
+    def get_metadata_url(self):
+        return f"{METADATA_ROOT}{AUDIENCE_ROOT}/{self.endpoint}"
     
-    def __init__(self,
-        run_url = "vaccine-allocation-sipjq3uhla-uc.a.run.app", 
-        conn_id = "vaccine-allocation-cloud-run", 
-        branch = "{{ dag_run.conf.get('branch', '') }}",
-        *args, **kwargs
-    ):
+    def execute(self, context):
+        token = requests.get(self.get_metadata_url(), headers = {"Metadata-Flavor": "Google"}).text
+        HttpHook(self.method, http_conn_id = self.http_conn_id)\
+            .run(self.endpoint, self.data, {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}, self.extra_options)
+
+class CloudRun(CloudFunction):
+    ui_color   = "#175AE1"
+    
+    def __init__(self, run_url, conn_id, *args, **kwargs):
         conn = Connection(
             conn_id   = conn_id,
             conn_type = "http",
@@ -66,64 +74,66 @@ class VaccineAllocationPipelineStage(SimpleHttpOperator):
             schema    = "https"
         )
         kwargs["http_conn_id"] = conn_id
-        super(SimpleHttpOperator, self).__init__(*args, **kwargs)
+        super(CloudRun, self).__init__(*args, **kwargs)
         self.run_url = run_url
-        self.branch  = branch
 
     def get_metadata_url(self):
-        prefix = self.branch + "---" if self.branch else ""
-        return f"{METADATA_ROOT}https://{prefix}{self.run_url}"
-    
-    def execute(self, context):
-        token = requests.get(self.get_metadata_url(), headers = {"Metadata-Flavor": "Google"}).text
-        HttpHook(self.method, http_conn_id = self.http_conn_id)\
-            .run(self.endpoint, self.data, {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}, self.extra_options)
+        return f"{METADATA_ROOT}https://{self.run_url}"
+
 
 def epi(state_code, district):
-    return VaccineAllocationPipelineStage(
+    return CloudRun(
         task_id      = f"epi_{state_code}_" + district.replace(" ", ""),
         method       = "POST",
         endpoint     = "/epi",
-        start_date   = datetime.datetime(2021, 6, 1),
+        start_date   = START_DATE,
+        run_url      = VAX_ALLOC_URL,
+        conn_id      = "vaccine-allocation-cloud-run",
         data         = json.dumps({"state_code": state_code, "district": district})
     )
 
 def tev(state_code, district):
-    return VaccineAllocationPipelineStage(
+    return CloudRun(
         task_id      = f"tev_{state_code}_" + district.replace(" ", ""),
         method       = "POST",
         endpoint     = "/tev",
-        start_date   = datetime.datetime(2021, 6, 1),
+        start_date   = START_DATE,
+        run_url      = VAX_ALLOC_URL,
+        conn_id      = "vaccine-allocation-cloud-run",
         data         = json.dumps({"state_code": state_code, "district": district})
     )
 
 def agg(state_code = None):
-    return VaccineAllocationPipelineStage(
+    return CloudRun(
         task_id      = f"agg_" + (state_code if state_code else "NATL"),
         method       = "POST",
         endpoint     = "/agg",
-        start_date   = datetime.datetime(2021, 6, 1),
+        start_date   = START_DATE,
+        run_url      = VAX_ALLOC_URL,
+        conn_id      = "vaccine-allocation-cloud-run",
         data         = json.dumps({"state_code": state_code} if state_code else {})
     )
 
 def viz(state_code = None, district = None):
-    return VaccineAllocationPipelineStage(
-        task_id      = f"viz_" + (state_code if state_code else "NATL") + (f"_{district}" if district else ""),
+    return CloudRun(
+        task_id      = f"viz_" + (state_code if state_code else "NATL") + (f"_{district.replace(' ', '')}" if district else ""),
         method       = "POST",
         endpoint     = "/viz",
-        start_date   = datetime.datetime(2021, 6, 1),
+        start_date   = START_DATE,
+        run_url      = VAX_ALLOC_URL,
+        conn_id      = "vaccine-allocation-cloud-run",
         data         = json.dumps({"state_code": state_code, "district": district})
     )
 
 state_districts = {k: v for (k, v) in state_districts.items() if k in ["TN", "BR"]}
 
 with models.DAG("vaccine-allocation", schedule_interval = None, catchup = False) as dag:
-    root = DummyOperator(task_id = "root", start_date = None)
+    root = DummyOperator(task_id = "root", start_date = START_DATE)
     natl_agg = agg()
     natl_agg >> viz()
     
     for (state_code, districts) in state_districts.items():
-        state_root = DummyOperator(task_id = state_code + "_root", start_date = None)
+        state_root = DummyOperator(task_id = state_code + "_root", start_date = START_DATE)
         root >> state_root
 
         state_agg = agg(state_code = state_code)

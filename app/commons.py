@@ -7,6 +7,19 @@ from google.cloud import storage
 bucket_name        = "vaccine-allocation"
 bucket             = storage.Client().bucket(bucket_name)
 
+# read in common data at container start
+bucket.blob("commons/all_india_coalesced_scaling_Apr15.csv")\
+    .download_to_filename("/tmp/initial_conditions.csv")
+initial_conditions = pd.read_csv("/tmp/initial_conditions.csv")\
+    .drop(columns = ["Unnamed: 0", "Rt_upper", "Rt_lower"])\
+    .set_index(["state_code", "district"])
+
+natl_weights  = initial_conditions.filter(regex = "N_[0-9]", axis = 1)\
+    .apply(lambda df: df/df.sum())
+state_weights = initial_conditions.filter(regex = "N_[0-9]", axis = 1)\
+    .groupby(level = 0)\
+    .apply(lambda df: df/df.sum())
+
 # simulation settings
 simulation_start  = pd.Timestamp("April 15, 2021")
 num_sims          = 1000

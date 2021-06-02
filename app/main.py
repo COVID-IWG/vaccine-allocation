@@ -3,22 +3,14 @@ import os
 import pandas as pd
 from flask import Flask, request
 
-from .commons import bucket
-from .epi import run_simulation, epi_columns
-from .tev import run_evaluation, tev_columns
-from .agg import run_aggregation
-from .viz import run_visualization
+from commons import initial_conditions
+from epi import run_simulation, epi_columns
+from tev import run_evaluation, tev_columns
+from agg import run_aggregation
 
 experiment_tag = "main"
 app = Flask(__name__)
 
-# read in common data at container start
-
-bucket.blob("commons/all_india_coalesced_scaling_Apr15.csv")\
-    .download_to_filename("/tmp/initial_conditions.csv")
-initial_conditions = pd.read_csv("/tmp/initial_conditions.csv")\
-    .drop(columns = ["Unnamed: 0", "Rt_upper", "Rt_lower"])\
-    .set_index(["state_code", "district"])
 
 @app.route("/epi", methods = ["POST"])
 def epi():
@@ -45,12 +37,11 @@ def agg():
     request_data = request.get_json()
     if "state_code" in request_data:
         state_code = request_data["state_code"]
-    else: 
-        state_code = None
-
-    if state_code is not None:
         print(f"received agg request for {state_code}")
-
+    else:
+        print(f"received agg request for all states")
+        state_code = None
+    run_aggregation(state_code, experiment_tag)
     return "OK!"
 
 @app.route("/viz", methods = ["POST"])

@@ -6,7 +6,7 @@ function run() {
     curl -s -XPOST \
         -H "Authorization: Bearer $(gcloud auth print-identity-token)"\
         -H 'Content-Type: application/json' \
-        "https://${1}---vaccine-allocation-sipjq3uhla-uc.a.run.app/${2}"  \
+        "https://vaccine-allocation-sipjq3uhla-uc.a.run.app/${2}"  \
         --data '{"state_code": "'"${3}"'", "district": "'"${4}"'"}'
 }
 
@@ -24,7 +24,10 @@ fi
 grep "${filter}" "${SCRIPT_DIR}"/../data/all_india_coalesced_initial_conditionsApr15.csv | cut -d, -f 2,4 | tr , " " |
 while read -r state_code district; do 
     echo "${tag} ${state_code} - ${district} -> STARTED"        &&
-    # run  "${tag}" epi "${state_code}" "${district}"  &&
-    run  "${tag}" tev "${state_code}" "${district}"  && 
-    echo "${tag} ${state_code} - ${district} <- DONE" 
+    ( 
+        echo ${tag} ${state_code} - ${district}  >> ./logfile && run  "${tag}" epi "${state_code}" "${district}" >> ./logfile 
+    ) &
+    sleep 5
+    # run  "${tag}" tev "${state_code}" "${district}"  && 
+    # echo "${tag} ${state_code} - ${district} <- DONE" 
 done 

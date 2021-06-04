@@ -13,7 +13,7 @@ gcloud run deploy vaccine-allocation\
     --no-allow-unauthenticated \
     --platform managed \
     --memory 8Gi \
-    --cpu 2 \
+    --cpu 4 \
     --concurrency 10 \
     --timeout 900
 #    --no-traffic \

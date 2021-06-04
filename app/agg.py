@@ -64,7 +64,7 @@ def run_aggregation_state(state_code, experiment_tag):
         outfile = f"/tmp/{state_code}_{label}.npz"
         np.savez_compressed(outfile, **{"_".join(map(str, k)): v for (k, v) in outcome.items()})
         bucket.blob(f"{experiment_tag}/agg/{state_code}/{label}.npz")\
-            .upload_from_filenam(outfile)
+            .upload_from_filename(outfile)
         os.remove(outfile)
 
 

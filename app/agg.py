@@ -87,7 +87,7 @@ def run_aggregation_natl(experiment_tag):
         with np.load(f"/tmp/{state_code}_{outcome}.npz") as f:
             for k_tag in f.files:
                 phi, vax_policy = k_tag.split("_")
-                phi = int(phi)
+                phi = int(phi.replace(".0", ""))
                 if   outcome == "deaths":               deaths[phi, vax_policy]               = deaths[phi, vax_policy]               + f[k_tag]
                 elif outcome == "YLL":                  YLL[phi, vax_policy]                  = YLL[phi, vax_policy]                  + f[k_tag]
                 elif outcome == "total_TEV":            total_TEV[phi, vax_policy]            = total_TEV[phi, vax_policy]            + f[k_tag]

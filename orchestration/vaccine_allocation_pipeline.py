@@ -89,7 +89,8 @@ def epi(state_code, district):
         start_date   = START_DATE,
         run_url      = VAX_ALLOC_URL,
         conn_id      = "vaccine-allocation-cloud-run",
-        data         = json.dumps({"state_code": state_code, "district": district})
+        data         = json.dumps({"state_code": state_code, "district": district}),
+        execution_timeout = datetime.timedelta(minutes=30)
     )
 
 def tev(state_code, district):
@@ -100,7 +101,8 @@ def tev(state_code, district):
         start_date   = START_DATE,
         run_url      = VAX_ALLOC_URL,
         conn_id      = "vaccine-allocation-cloud-run",
-        data         = json.dumps({"state_code": state_code, "district": district})
+        data         = json.dumps({"state_code": state_code, "district": district}),
+        execution_timeout = datetime.timedelta(minutes=30)
     )
 
 def agg(state_code = None):
@@ -111,7 +113,8 @@ def agg(state_code = None):
         start_date   = START_DATE,
         run_url      = VAX_ALLOC_URL,
         conn_id      = "vaccine-allocation-cloud-run",
-        data         = json.dumps({"state_code": state_code} if state_code else {})
+        data         = json.dumps({"state_code": state_code} if state_code else {}),
+        execution_timeout = datetime.timedelta(minutes=30)
     )
 
 def viz(state_code = None, district = None):
@@ -122,12 +125,11 @@ def viz(state_code = None, district = None):
         start_date   = START_DATE,
         run_url      = VAX_ALLOC_URL,
         conn_id      = "vaccine-allocation-cloud-run",
-        data         = json.dumps({"state_code": state_code, "district": district})
+        data         = json.dumps({"state_code": state_code, "district": district}),
+        execution_timeout = datetime.timedelta(minutes=30)
     )
 
-state_districts = {k: v for (k, v) in state_districts.items() if k in ["TN", "BR"]}
-
-with models.DAG("vaccine-allocation", schedule_interval = None, catchup = False) as dag:
+with models.DAG("vaccine-allocation", schedule_interval = "0 0 1 1 1", catchup = False, concurrency = 50) as dag:
     root = DummyOperator(task_id = "root", start_date = START_DATE)
     natl_agg = agg()
     natl_agg >> viz()

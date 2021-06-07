@@ -110,7 +110,7 @@ def save_metrics(filename, **metrics):
     np.savez_compressed(f"{filename}.npz", **metrics)
 
 def run_evaluation(state_code, district, population_data, experiment_tag):
-    state, N_district, N_0, N_1, N_2, N_3, N_4, N_5, N_6, T_ratio = population_data
+    state, N_district, N_0, N_1, N_2, N_3, N_4, N_5, N_6, T_ratio, S_0 = population_data
     N_jk = np.array([N_0, N_1, N_2, N_3, N_4, N_5, N_6])
 
     rc_hat_p1v1 = rc_hat(state, district, np.zeros((simulation_range + 1, 1)), np.zeros((simulation_range + 1, 1)))
@@ -127,11 +127,13 @@ def run_evaluation(state_code, district, population_data, experiment_tag):
     bucket.blob(f"{experiment_tag}/epi/{state_code}/{district}/{cf_tag}.npz")\
         .download_to_filename(f"/tmp/simulations_{state_code}_{district}_{cf_tag}.npz")
     with np.load(f"/tmp/simulations_{state_code}_{district}_{cf_tag}.npz") as counterfactual:
-        dI_pc_p0 = counterfactual['dT']/(N_district * T_ratio)
-        dD_pc_p0 = counterfactual['dD']/(N_district)
+        dI       = counterfactual['dT']
+        dD_pc_p0 = counterfactual['dD']/N_district
         q_p0v0   = counterfactual["q0"]
         D_p0     = counterfactual["Dj"]
     os.remove(f"/tmp/simulations_{state_code}_{district}_{cf_tag}.npz")
+
+    dI_pc_p0 = np.where(S_0 - dI.cumsum(axis = 0) < 0, 0, dI)/(N_district * T_ratio)
 
     rc_hat_p0v0 = rc_hat(state, district, dI_pc_p0, dD_pc_p0)
     c_p0v0 = np.transpose(

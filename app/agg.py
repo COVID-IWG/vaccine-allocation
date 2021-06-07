@@ -15,7 +15,7 @@ def run_aggregation(state_code, experiment_tag):
     else:
         run_aggregation_natl(experiment_tag)
 
-def run_aggregation_state(state_code, experiment_tag):
+def run_aggregation_state(state_code, experiment_tag, loc = "/tmp"):
     deaths                = empty_dict()
     YLL                   = empty_dict()
     total_TEV             = empty_dict()
@@ -37,8 +37,8 @@ def run_aggregation_state(state_code, experiment_tag):
             sw = state_weights.loc[state_code, district]
             nw = natl_weights .loc[state_code, district]
             
-            blob.download_to_filename(f"/tmp/{filename}")
-            with np.load(f"/tmp/{filename}") as f:
+            blob.download_to_filename(f"{loc}/{filename}")
+            with np.load(f"{loc}/{filename}") as f:
                 deaths[phi, vax_policy]                = deaths[phi, vax_policy]                + f["deaths"]
                 YLL[phi, vax_policy]                   = YLL[phi, vax_policy]                   + f["YLL"]
                 total_TEV[phi, vax_policy]             = total_TEV[phi, vax_policy]             + f["total_TEV"]
@@ -48,7 +48,7 @@ def run_aggregation_state(state_code, experiment_tag):
                 natl_per_capita_TEV[phi, vax_policy]   = natl_per_capita_TEV[phi, vax_policy]   + f["per_capita_TEV"]  * nw[None, None, :]
                 natl_per_capita_VSLY[phi, vax_policy]  = natl_per_capita_VSLY[phi, vax_policy]  + f["per_capita_VSLY"] * nw[None, None, :]
 
-            os.remove(f"/tmp/{filename}") 
+            os.remove(f"{loc}/{filename}") 
     
     for (label, outcome) in {
         "deaths"               : deaths,
@@ -61,14 +61,14 @@ def run_aggregation_state(state_code, experiment_tag):
         "natl_per_capita_VSLY" : natl_per_capita_VSLY
     }.items():
         print(f"{state_code}/agg: uploading aggregated {label.replace('_', ' ')}")
-        outfile = f"/tmp/{state_code}_{label}.npz"
+        outfile = f"{loc}/{state_code}_{label}.npz"
         np.savez_compressed(outfile, **{"_".join(map(str, k)): v for (k, v) in outcome.items()})
         bucket.blob(f"{experiment_tag}/agg/{state_code}/{label}.npz")\
             .upload_from_filename(outfile)
         os.remove(outfile)
 
 
-def run_aggregation_natl(experiment_tag):
+def run_aggregation_natl(experiment_tag, loc = "/tmp"):
     deaths                = empty_dict()
     YLL                   = empty_dict()
     total_TEV             = empty_dict()
@@ -77,24 +77,24 @@ def run_aggregation_natl(experiment_tag):
     natl_per_capita_VSLY  = empty_dict()
 
     for blob in bucket.list_blobs(prefix = f"{experiment_tag}/agg/"):
-        if 'state_' in blob.name:
+        if 'state_' in blob.name or 'NATL' in blob.name:
             print(f"NATL/agg: skipping {blob.name}")
             continue
         print(f"NATL/agg: processing {blob.name}")
         *_, state_code, filename = blob.name.split("/")
-        outcome = filename.split(".")
-        blob.download_to_filename(f"/tmp/{state_code}_{outcome}.npz")
-        with np.load(f"/tmp/{state_code}_{outcome}.npz") as f:
+        outcome = filename.split(".")[0]
+        blob.download_to_filename(f"{loc}/{state_code}_{outcome}.npz")
+        with np.load(f"{loc}/{state_code}_{outcome}.npz") as f:
             for k_tag in f.files:
                 phi, vax_policy = k_tag.split("_")
-                phi = int(phi.replace(".0", ""))
+                phi = float(phi)
                 if   outcome == "deaths":               deaths[phi, vax_policy]               = deaths[phi, vax_policy]               + f[k_tag]
                 elif outcome == "YLL":                  YLL[phi, vax_policy]                  = YLL[phi, vax_policy]                  + f[k_tag]
                 elif outcome == "total_TEV":            total_TEV[phi, vax_policy]            = total_TEV[phi, vax_policy]            + f[k_tag]
                 elif outcome == "total_VSLY":           total_VSLY[phi, vax_policy]           = total_VSLY[phi, vax_policy]           + f[k_tag]
                 elif outcome == "natl_per_capita_TEV":  natl_per_capita_TEV[phi, vax_policy]  = natl_per_capita_TEV[phi, vax_policy]  + f[k_tag]
                 elif outcome == "natl_per_capita_VSLY": natl_per_capita_VSLY[phi, vax_policy] = natl_per_capita_VSLY[phi, vax_policy] + f[k_tag]
-        os.remove(f"/tmp/{state_code}_{outcome}.npz")
+        os.remove(f"{loc}/{state_code}_{outcome}.npz")
     
     for (label, outcome) in {
         "deaths"               : deaths,
@@ -105,7 +105,7 @@ def run_aggregation_natl(experiment_tag):
         "natl_per_capita_VSLY" : natl_per_capita_VSLY
     }.items():
         print(f"NATL/agg: uploading aggregated {label.replace('_', ' ')}")
-        outfile = f"/tmp/NATL_{label}.npz"
+        outfile = f"{loc}/NATL_{label}.npz"
         np.savez_compressed(outfile, **{"_".join(map(str, k)): v for (k, v) in outcome.items()})
         bucket.blob(f"{experiment_tag}/agg/NATL/{label}.npz")\
             .upload_from_filename(outfile)
